@@ -1,0 +1,9 @@
+Another thing is needed to download to run this script which link is given below. Remember to name this file as "yolov3.weights".
+
+link: https://pjreddie.com/media/files/yolov3.weights
+
+This file couldn't included because of large size.
+
+Another important fact is, in python script, the path should be absolute path according to your device folder.
+
+Thank you. :D
