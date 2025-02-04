@@ -1,0 +1,116 @@
+#define BLYNK_PRINT Serial
+
+#define BLYNK_TEMPLATE_ID "TMPL6znMymr2u"
+#define BLYNK_TEMPLATE_NAME "Motor Control Test"
+#define BLYNK_AUTH_TOKEN "o1qgSCawGVWQDMOWjtTv0v-TfJmzL5Xg"
+
+// Motor A pins (Forward/Backward control)
+#define motorA1 18  // IN1 for Motor A (forward)
+#define motorA2 19  // IN2 for Motor A (backward)
+
+// Motor B pins (Forward/Backward control)
+#define motorB1 5  // IN1 for Motor B (forward)
+#define motorB2 4  // IN2 for Motor B (backward)
+
+// Joystick virtual pins
+#define joystickY V10  // Y-axis controls forward/backward
+#define joystickX V9   // X-axis controls left/right
+
+#include <BlynkSimpleEsp32.h>
+#include <WiFi.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "MIST";  
+char pass[] = "Il0veMIST";      
+
+// Dead zone to avoid jitter in neutral position
+const int deadZone = 15;  // Joystick values within +/- deadZone are considered neutral
+
+// Function to initialize motor control pins
+void setupMotors() {
+  pinMode(motorA1, OUTPUT);
+  pinMode(motorA2, OUTPUT);
+  pinMode(motorB1, OUTPUT);
+  pinMode(motorB2, OUTPUT);
+
+  // Initial motor state: stopped
+  stopMotors();
+}
+
+// Stop both motors
+void stopMotors() {
+  digitalWrite(motorA1, LOW);
+  digitalWrite(motorA2, LOW);
+  digitalWrite(motorB1, LOW);
+  digitalWrite(motorB2, LOW);
+}
+
+// Control motor movement based on joystick values
+void moveBoats(int yValue, int xValue) {
+  // Apply dead zone for Y-axis (forward/backward)
+  if (yValue>=235 &&(xValue>=98 && xValue<=158)) {
+    // Move Forward
+    digitalWrite(motorA1, HIGH);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, HIGH);
+    digitalWrite(motorB2, LOW);
+    Serial.println("Moving Forward");
+  } else if (yValue<=20 &&(xValue>=98 && xValue<=158)) {
+    // Move Backward
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, HIGH);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, HIGH);
+    Serial.println("Moving Backward");
+  } else if (xValue >=235 && (yValue>=68 && yValue<=188)) {
+    // Turn Right: Left motor forward, Right motor backward or stopped
+    digitalWrite(motorA1, HIGH);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, LOW);   // Right motor stops or goes backward
+    digitalWrite(motorB2, HIGH);
+    Serial.println("Turning Right");
+  } else if (xValue <=20 && (yValue>=68 && yValue<=188)) {
+    // Turn Left: Right motor forward, Left motor backward or stopped
+    digitalWrite(motorA1, LOW);   // Left motor stops or goes backward
+    digitalWrite(motorA2, HIGH);
+    digitalWrite(motorB1, HIGH);
+    digitalWrite(motorB2, LOW);
+    Serial.println("Turning Left");
+
+  } 
+  else if(xValue==128 && yValue==128)
+  {
+    stopMotors();
+    Serial.println("Stopping Motors");
+  }
+  //else {
+  //   // Stop if joystick is in the neutral position
+  //   stopMotors();
+  //   Serial.println("Stopping Motors");
+  // }
+}
+
+// Joystick Y-axis handler (for forward/backward)
+BLYNK_WRITE(joystickY) {
+  int yValue = param.asInt();  // Get joystick Y value
+  //Serial.println("Joystick Y: " + String(yValue));  // Debugging output
+  moveBoats(yValue, 128);  // Move based on Y-value only (X neutral)
+}
+
+// Joystick X-axis handler (for left/right)
+BLYNK_WRITE(joystickX) {
+  int xValue = param.asInt();  // Get joystick X value
+  //Serial.println("Joystick X: " + String(xValue));  // Debugging output
+  moveBoats(128, xValue);  // Move based on X-value only (Y neutral)
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  Blynk.begin(auth, ssid, pass);  // Connect to Blynk server
+  setupMotors();                  // Initialize motor pins
+}
+
+void loop() {
+  Blynk.run();  // Run Blynk
+}
